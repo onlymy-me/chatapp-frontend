@@ -11,7 +11,7 @@ interface User {
   username: string;
 }
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://chatapp-backend-a3j3.onrender.com";
 
 function App() {
   const [token, setToken] = useState<string | null>(
