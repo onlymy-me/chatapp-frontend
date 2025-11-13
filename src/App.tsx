@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Send, LogIn, Users, Circle, MoreVertical } from "lucide-react";
+import { useChatSocket } from "./hooks/useChatSocket";
 
 interface Message {
   username: string;
@@ -18,11 +19,11 @@ function App() {
     localStorage.getItem("token")
   );
   const [user, setUser] = useState<User | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const { messages, onlineUsers, typingUsers, ws, sendMessage } = useChatSocket(
+    token,
+    user
+  );
   const [input, setInput] = useState("");
-  const [ws, setWs] = useState<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -78,11 +79,11 @@ function App() {
     return () => socket.close();
   }, [token]);
 
-  // Send message
-  const sendMessage = () => {
-    if (!input.trim() || !ws) return;
-    ws.send(JSON.stringify({ type: "message", content: input }));
-    setInput("");
+  const handleSendMessage = () => {
+    if (input.trim()) {
+      sendMessage(input);
+      setInput("");
+    }
   };
 
   // Typing
