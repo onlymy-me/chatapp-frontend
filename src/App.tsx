@@ -191,7 +191,7 @@ function App() {
               />
               <button
                 onClick={login}
-                className="w-full bg-kenya text-white py-3 rounded-xl hover:bg-green-700 transition font-semibold"
+                className="w-full bg-blue-400 text-white py-3 rounded-xl hover:bg-blue-600 transition font-semibold"
               >
                 Login
               </button>
