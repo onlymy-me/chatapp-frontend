@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Send, LogIn, Users, Circle, MoreVertical } from "lucide-react";
-import { useChatSocket } from "./hooks/useChatSocket";
 
 interface Message {
   username: string;
@@ -19,11 +18,11 @@ function App() {
     localStorage.getItem("token")
   );
   const [user, setUser] = useState<User | null>(null);
-  const { messages, onlineUsers, typingUsers, ws, sendMessage } = useChatSocket(
-    token,
-    user
-  );
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [input, setInput] = useState("");
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
@@ -33,12 +32,10 @@ function App() {
   });
   const [isRegister, setIsRegister] = useState(false);
 
-  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // WebSocket
   useEffect(() => {
     if (!token) return;
 
@@ -55,7 +52,7 @@ function App() {
           { username: data.username, content: data.content },
         ]);
         if (data.username === user?.username) {
-          setInput(""); // ← Clear only after echo
+          setInput("");
         }
       } else if (data.type === "online_users") {
         setOnlineUsers(data.users);
@@ -79,14 +76,12 @@ function App() {
     return () => socket.close();
   }, [token]);
 
-  const handleSendMessage = () => {
-    if (input.trim()) {
-      sendMessage(input);
-      setInput("");
-    }
+  const sendMessage = () => {
+    if (!input.trim() || !ws) return;
+    ws.send(JSON.stringify({ type: "message", content: input }));
+    setInput("");
   };
 
-  // Typing
   useEffect(() => {
     if (!ws || !user) return;
     const timer = setTimeout(() => {
@@ -98,7 +93,6 @@ function App() {
     return () => clearTimeout(timer);
   }, [input]);
 
-  // Login / Register
   const login = async () => {
     try {
       const res = await axios.post(
@@ -215,7 +209,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
       <div className="w-64 bg-white shadow-lg p-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2">
@@ -242,7 +235,6 @@ function App() {
         </div>
       </div>
 
-      {/* Chat */}
       <div className="flex-1 flex flex-col">
         <div className="bg-white shadow-sm p-4 border-b">
           <h1 className="text-2xl font-bold">Kenya Chat</h1>
