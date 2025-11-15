@@ -6,6 +6,8 @@ const messageInput = ({
   setNewMessage,
   channels,
   selectedChannel,
+  typingUsers,
+  messagesEndRef,
 }) => {
   return (
     <div className="bg-gray-700 p-4">
@@ -13,6 +15,18 @@ const messageInput = ({
         onSubmit={handleSendMessage}
         className="flex items-center space-x-3"
       >
+        {typingUsers.length > 0 && (
+          <div className="flex items-center gap-2 text-gray-500 text-sm">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+            </div>
+            {typingUsers.join(", ")} typing...
+          </div>
+        )}
+        <div ref={messagesEndRef}></div>
+
         <div className="flex-1 relative">
           <input
             type="text"

@@ -1,13 +1,6 @@
-import { LogIn } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import MobileHeader from "./components/mobile-header";
-import ServerSidebar from "./components/server-sidebar";
-import ChatHeader from "./components/chat-header";
-import MessageArea from "./components/message-area";
-import MessageInput from "./components/message-input";
-import MembersSidebar from "./components/members-sidebar";
-import ChannelsSidebar from "./components/channels-sidebar";
+import { Send, LogIn, Users, Circle, MoreVertical } from "lucide-react";
 
 interface Message {
   username: string;
@@ -20,46 +13,29 @@ interface User {
 
 const API_URL = "https://chatapp-backend-a3j3.onrender.com";
 
-const App = () => {
+function App() {
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("token")
   );
   const [user, setUser] = useState<User | null>(null);
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  const [selectedServer, setSelectedServer] = useState(0);
-  const [selectedChannel, setSelectedChannel] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState<string>("");
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
-  const [membersOpen, setMembersOpen] = useState<boolean>(false);
-  const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [input, setInput] = useState("");
   const [ws, setWs] = useState<WebSocket | null>(null);
-  const [isRegister, setIsRegister] = useState<boolean>(false);
-
-  const servers = [
-    { name: "Gaming Hub", icon: "🎮", id: 0 },
-    { name: "Work Team", icon: "💼", id: 1 },
-    { name: "Friends", icon: "👥", id: 2 },
-  ];
-
-  const channels = [
-    { name: "general", type: "text", id: 0 },
-    { name: "random", type: "text", id: 1 },
-  ];
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-
   const [registerForm, setRegisterForm] = useState({
     username: "",
     password: "",
   });
+  const [isRegister, setIsRegister] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({
-      behavior: "smooth",
-    });
-  });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   useEffect(() => {
     if (!token) return;
@@ -76,6 +52,9 @@ const App = () => {
           ...prev,
           { username: data.username, content: data.content },
         ]);
+        if (data.username === user?.username) {
+          setInput("");
+        }
       } else if (data.type === "online_users") {
         setOnlineUsers(data.users);
       } else if (data.type === "typing") {
@@ -98,40 +77,22 @@ const App = () => {
     return () => socket.close();
   }, [token]);
 
-  const handleSendMessage = (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !ws) return;
-    ws.send(
-      JSON.stringify({
-        type: "message",
-        content: newMessage,
-      })
-    );
-    setNewMessage("");
+  const sendMessage = () => {
+    if (!input.trim() || !ws) return;
+    ws.send(JSON.stringify({ type: "message", content: input }));
+    setInput("");
   };
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(false);
-        setMembersOpen(false);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   useEffect(() => {
     if (!ws || !user) return;
     const timer = setTimeout(() => {
       ws.send(JSON.stringify({ type: "typing", is_typing: false }));
     }, 1000);
-    if (newMessage) {
+    if (input) {
       ws.send(JSON.stringify({ type: "typing", is_typing: true }));
     }
     return () => clearTimeout(timer);
-  }, [newMessage]);
+  }, [input]);
 
   const login = async () => {
     try {
@@ -248,72 +209,104 @@ const App = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white">
-      <MobileHeader
-        setSidebarOpen={setSidebarOpen}
-        sidebarOpen={sidebarOpen}
-        channels={channels}
-        selectedChannel={selectedChannel}
-        setMembersOpen={setMembersOpen}
-        membersOpen={membersOpen}
-      />
-
-      <ServerSidebar
-        sidebarOpen={sidebarOpen}
-        servers={servers}
-        setSelectedServer={setSelectedServer}
-        selectedServer={selectedServer}
-        setSidebarOpen={setSidebarOpen}
-      />
-
-      <ChannelsSidebar
-        sidebarOpen={sidebarOpen}
-        servers={servers}
-        selectedServer={selectedServer}
-        setSidebarOpen={setSidebarOpen}
-        channels={channels}
-        setSelectedChannel={setSelectedChannel}
-        selectedChannel={selectedChannel}
-      />
-
-      {(sidebarOpen || membersOpen) && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden"
-          onClick={() => {
-            setSidebarOpen(false);
-            setMembersOpen(false);
-          }}
-        ></div>
-      )}
-
+    <div className=" text-slate-200 h-screen bg-gray-100 flex">
       <div
-        className={`flex-1 flex flex-col ${
-          sidebarOpen ? "hidden md:flex" : "flex"
-        } ${membersOpen ? "hidden md:flex" : "flex"}`}
+        className={`fixed md:static inset-y-0 left-0 z-20 w-64 bg-slate-900 flex flex-col px-2 py-3 space-y-4 transition-transform duration-300 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0 h-full`}
       >
-        <ChatHeader
-          sidebarOpen={sidebarOpen}
-          membersOpen={membersOpen}
-          channels={channels}
-          selectedChannel={selectedChannel}
-        />
-
-        <MessageArea messages={messages} />
-        <MessageInput
-          handleSendMessage={handleSendMessage}
-          newMessage={newMessage}
-          setNewMessage={setNewMessage}
-          channels={channels}
-          selectedChannel={selectedChannel}
-        />
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Users className="w-6 h-6 text-kenya" />
+            Online
+          </h2>
+          <button onClick={logout} className="text-gray-500 hover:text-red-600">
+            <MoreVertical className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {onlineUsers.map((u) => (
+            <div
+              key={u}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100"
+            >
+              <Circle className="w-2 h-2 fill-green-500 text-green-500" />
+              <span className="font-medium">{u}</span>
+              {u === user?.username && (
+                <span className="text-xs text-gray-500">(You)</span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      <MembersSidebar
-        membersOpen={membersOpen}
-        setMembersOpen={setMembersOpen}
-        onlineUsers={onlineUsers}
-      />
+
+      <div className="flex-1 flex flex-col">
+        <div className="bg-gray-800 shadow-sm p-4">
+          <h1 className="text-2xl font-bold">Friends Chat</h1>
+          <p className="text-sm text-gray-600">
+            Real-time • {onlineUsers.length} online
+          </p>
+        </div>
+
+        <div className="flex-1 bg-slate-700 overflow-y-scroll p-4 space-y-3">
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`flex ${
+                m.username === user?.username ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div
+                className={`max-w-xs px-4 py-2 rounded-2xl ${
+                  m.username === user?.username
+                    ? "bg-gray-100 text-black"
+                    : m.username === "System"
+                    ? "bg-gray-200 text-gray-600 text-center mx-auto"
+                    : "bg-gray-200 text-gray-800"
+                }`}
+              >
+                {m.username !== user?.username && m.username !== "System" && (
+                  <p className="text-xs font-semibold opacity-75">
+                    {m.username}
+                  </p>
+                )}
+                <p>{m.content}</p>
+              </div>
+            </div>
+          ))}
+          {typingUsers.length > 0 && (
+            <div className="flex items-center gap-2 text-gray-500 text-sm">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+              </div>
+              {typingUsers.join(", ")} typing...
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="bg-slate-900 p-4">
+          <div className="flex gap-2">
+            <input
+              placeholder="Type a message..."
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-kenya"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <button
+              onClick={sendMessage}
+              className="bg-slate-700 text-white p-3 rounded-full hover:bg-green-700 transition"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
+}
 
 export default App;
