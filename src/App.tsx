@@ -31,7 +31,7 @@ function App() {
     password: "",
   });
   const [isRegister, setIsRegister] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
