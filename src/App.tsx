@@ -78,7 +78,7 @@ const Avatar: React.FC<{ username: string; size: "small" | "medium" }> = ({
   const sizeClasses = size === "medium" ? "w-8 h-8 text-md" : "w-6 h-6 text-xs";
   return (
     <div
-      className={`flex items-center justify-center rounded-full font-bold text-white shadow-sm flex-shrink-0 ${color} ${sizeClasses}`}
+      className={`flex items-center justify-center rounded-full font-bold text-white shadow-sm shrink-0 ${color} ${sizeClasses}`}
     >
       {initial}
     </div>
