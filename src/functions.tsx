@@ -1,63 +1,93 @@
-import { useState } from "react";
-import axios from "axios";
-import { API_URL } from "./utils";
-import type { UserInfo, User } from "./types";
+import type { User, Message } from "./types";
+import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 
-export function useAuth() {
-  const [loginForm, setLoginForm] = useState({
-    username: "",
-    password: "",
-  });
+type ChatStore = {
+  // Auth
+  token: string | null;
+  user: User | null;
+  isAuthenticated: boolean;
 
-  const [registerForm, setRegisterForm] = useState<UserInfo>({
-    username: "",
-    password: "",
-  });
+  // Chat data
+  messages: Message[];
+  onlineUsers: string[];
+  typingUsers: string[];
 
-  const [isRegister, setIsRegister] = useState<boolean>(false);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token")
-  );
-  const [user, setUser] = useState<User | null>(null);
+  // UI
+  sidebarOpen: boolean;
+  notification: { message: string; type: "success" | "error" } | null;
 
-  const register = async () => {
-    try {
-      await axios.post(`${API_URL}/register`, registerForm);
-      alert("Registered! Now login.");
-      setIsRegister(false);
-    } catch {
-      alert("Register failed");
-    }
-  };
+  // Actions
+  setAuth: (token: string | null, username: string | null) => void;
+  logout: () => void;
+  addMessage: (msg: Message) => void;
+  setMessages: (msgs: Message[]) => void;
+  setOnlineUsers: (users: string[]) => void;
+  setTypingUsers: (users: string[]) => void;
+  toggleSidebar: () => void;
+  showNotification: (msg: string, type: "success" | "error") => void;
+  clearNotification: () => void;
+};
 
-  const login = async () => {
-    try {
-      const res = await axios.post(
-        `${API_URL}/login`,
-        new URLSearchParams(loginForm),
-        { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-      );
-      const newToken = res.data.access_token;
-      localStorage.setItem("token", newToken);
-      setToken(newToken);
-      setUser({ username: loginForm.username });
-    } catch {
-      alert("Login failed");
-    }
-  };
+export const useChatStore = create<ChatStore>()(
+  devtools(
+    (set) => ({
+      token: localStorage.getItem("token"),
+      user: localStorage.getItem("username")
+        ? { username: localStorage.getItem("username")! }
+        : null,
+      isAuthenticated: !!localStorage.getItem("token"),
+      messages: [],
+      onlineUsers: [],
+      typingUsers: [],
+      sidebarOpen: false,
+      notification: null,
 
-  return {
-    loginForm,
-    setLoginForm,
-    registerForm,
-    setRegisterForm,
-    isRegister,
-    setIsRegister,
-    token,
-    setToken,
-    user,
-    setUser,
-    register,
-    login,
-  };
-}
+      setAuth: (token, username) =>
+        set(
+          {
+            token,
+            user: username ? { username } : null,
+            isAuthenticated: !!token,
+          },
+          false,
+          "setAuth"
+        ),
+
+      logout: () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        set(
+          {
+            token: null,
+            user: null,
+            isAuthenticated: false,
+            messages: [],
+            onlineUsers: [],
+            typingUsers: [],
+            sidebarOpen: false,
+          },
+          false,
+          "logout"
+        );
+      },
+
+      addMessage: (msg) =>
+        set((state) => ({
+          messages: [...state.messages, msg],
+        })),
+
+      setMessages: (msgs) => set({ messages: msgs }),
+      setOnlineUsers: (users) => set({ onlineUsers: users }),
+      setTypingUsers: (users) => set({ typingUsers: users }),
+      toggleSidebar: () =>
+        set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+      showNotification: (msg, type) =>
+        set({
+          notification: { message: msg, type },
+        }),
+      clearNotification: () => set({ notification: null }),
+    }),
+    { name: "ChatStore" }
+  )
+);
